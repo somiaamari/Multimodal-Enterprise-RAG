@@ -1,0 +1,20 @@
+[project]
+name = "multimodal-enterprise-rag"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "somiaamari",email = "amarisomia0@gmail.com"}
+]
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "pandas (>=2.0.0,<3)",
+    "llama-index (>=0.14.23,<0.15.0)",
+    "llama-index-embeddings-huggingface (>=0.7.0,<0.8.0)",
+    "llama-index-vector-stores-qdrant (>=0.10.2,<0.11.0)",
+    "python-dotenv (>=1.2.2,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Poetry
+poetry.lock
+
+# Environment variables (SECRETS!)
+.env
+.env.local
+
+# Qdrant storage (database files)
+qdrant_storage/
+data/
+
+# Logs and databases
+logs/
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
