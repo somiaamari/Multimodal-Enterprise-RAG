@@ -1,9 +1,11 @@
+import os
 import logging
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
-from llama_index.core import SimpleDirectoryReader, VectorStoreIndex, StorageContext
+from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.vector_stores.qdrant import QdrantVectorStore
+from llama_parse import LlamaParse
 from app.utils.config import Settings
 from app.ingestion.embedding import embed_model
 
@@ -11,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 def create_collection(client, collection_name):
     """Create a Qdrant collection with the correct vector size"""
-    # Delete if exists to start fresh
     collections = client.get_collections().collections
     if collection_name in [c.name for c in collections]:
         print(f"⚠️  Collection '{collection_name}' exists. Recreating...")
@@ -28,14 +29,7 @@ def create_collection(client, collection_name):
 
 def ingest_document(file_path, collection_name=None):
     """
-    Ingest a PDF document into Qdrant.
-    
-    Args:
-        file_path: Path to the PDF file
-        collection_name: Optional override for collection name
-    
-    Returns:
-        Tuple: (VectorStoreIndex, number_of_nodes)
+    Ingest a PDF document into Qdrant using LlamaParse.
     """
     if collection_name is None:
         collection_name = Settings.COLLECTION_NAME
@@ -48,9 +42,15 @@ def ingest_document(file_path, collection_name=None):
     # 2. Create/Recreate the collection
     create_collection(client, collection_name)
     
-    # 3. Load the PDF
-    reader = SimpleDirectoryReader(input_files=[file_path])
-    documents = reader.load_data()
+    # 3. Parse PDF with LlamaParse
+    print("📖 Parsing PDF with LlamaParse...")
+    parser = LlamaParse(
+        api_key=os.getenv("LLAMA_PARSE_API_KEY"),
+        result_type="markdown",  # Clean markdown output
+        verbose=True,
+    )
+    
+    documents = parser.load_data(file_path)
     print(f"📖 Loaded {len(documents)} pages")
     
     # 4. Chunk into nodes
@@ -65,7 +65,7 @@ def ingest_document(file_path, collection_name=None):
     )
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     
-    # 6. Build the index (this embeds and stores everything)
+    # 6. Build the index
     index = VectorStoreIndex(
         nodes=nodes,
         storage_context=storage_context,
@@ -74,14 +74,3 @@ def ingest_document(file_path, collection_name=None):
     
     print(f"✅ Index complete! {len(nodes)} chunks stored in Qdrant.")
     return index, len(nodes)
-
-def test_connection():
-    """Quick test to verify Qdrant is reachable"""
-    try:
-        client = QdrantClient(host=Settings.QDRANT_HOST, port=Settings.QDRANT_PORT)
-        collections = client.get_collections()
-        print(f"✅ Qdrant connected. Collections: {collections}")
-        return client
-    except Exception as e:
-        print(f"❌ Qdrant connection failed: {e}")
-        return None
