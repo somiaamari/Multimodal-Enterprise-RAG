@@ -1,12 +1,17 @@
 from app.retrieval.retriever import DocumentRetriever
 
-def ask_question(question, top_k=3):
-    """Ask a question and get an answer with sources"""
+def ask_question(question, top_k=10, use_hybrid=False, use_reranker=True):
+    """Ask a question with hybrid search and reranking"""
     print(f"\n❓ Question: {question}")
     print("-" * 60)
+    print(f"⚙️  Hybrid: {use_hybrid}, Reranker: {use_reranker}")
+    print("-" * 60)
     
-    # Initialize retriever
-    retriever = DocumentRetriever()
+    # Initialize retriever with new features
+    retriever = DocumentRetriever(
+        use_hybrid=use_hybrid,
+        use_reranker=use_reranker
+    )
     
     # Get answer
     result = retriever.query(question, similarity_top_k=top_k)
@@ -27,13 +32,14 @@ def ask_question(question, top_k=3):
     return result
 
 if __name__ == "__main__":
-    # Example questions - replace with your own
+    # Test questions
     questions = [
-        "What is the main business of Tesla?",
         "What were Tesla's revenues in 2023?",
+        "What is the main business of Tesla?",
         "What are the main risks mentioned in the report?",
+        "TSLA stock",  # Keyword-specific test!
     ]
     
     for q in questions:
-        ask_question(q, top_k=3)
+        ask_question(q, top_k=10, use_hybrid=True, use_reranker=True)
         print("\n" + "=" * 60)
