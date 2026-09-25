@@ -34,7 +34,7 @@ class DocumentRetriever:
         self.llm = OpenAILike(
             api_key=AppSettings.GROQ_API_KEY,
             api_base="https://api.groq.com/openai/v1",
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             temperature=0.1,
             context_window=128000,
             max_tokens=4096,
