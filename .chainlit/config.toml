@@ -1,0 +1,19 @@
+[project]
+enable_telemetry = false
+
+[features]
+unsafe_allow_html = true
+auto_tag_thread = true
+
+[features.spontaneous_file_upload]
+enabled = true
+accept = ["application/pdf"]
+max_files = 5
+max_size_mb = 100
+
+[UI]
+name = "EnterpriseMind AI"
+default_theme = "dark"
+
+[meta]
+generated_by = "1.0.0"
