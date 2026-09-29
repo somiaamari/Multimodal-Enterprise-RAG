@@ -18,7 +18,12 @@ Settings.llm = OpenAI(
 )
 
 # Load index
-client = QdrantClient(host=AppSettings.QDRANT_HOST, port=AppSettings.QDRANT_PORT)
+client = QdrantClient(
+        host=AppSettings.QDRANT_HOST,
+        port=AppSettings.QDRANT_PORT,
+        api_key=AppSettings.QDRANT_API_KEY,
+        https=AppSettings.QDRANT_USE_HTTPS,
+    )
 vector_store = QdrantVectorStore(client=client, collection_name=AppSettings.COLLECTION_NAME)
 storage_context = StorageContext.from_defaults(vector_store=vector_store)
 index = VectorStoreIndex.from_vector_store(vector_store, embed_model=embed_model)

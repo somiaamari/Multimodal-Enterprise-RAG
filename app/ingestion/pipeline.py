@@ -124,7 +124,12 @@ def ingest_document(file_path, collection_name=None):
 def test_connection():
     """Quick test to verify Qdrant is reachable"""
     try:
-        client = QdrantClient(host=Settings.QDRANT_HOST, port=Settings.QDRANT_PORT)
+        client = QdrantClient(
+            host=AppSettings.QDRANT_HOST,
+            port=AppSettings.QDRANT_PORT,
+            api_key=AppSettings.QDRANT_API_KEY,
+            https=AppSettings.QDRANT_USE_HTTPS,
+)   
         collections = client.get_collections()
         print(f"✅ Qdrant connected. Collections: {collections}")
         return client

@@ -12,7 +12,12 @@ Settings.embed_model = embed_model
 
 def get_vector_store():
     """Get a Qdrant vector store instance configured for LlamaIndex"""
-    client = QdrantClient(host=AppSettings.QDRANT_HOST, port=AppSettings.QDRANT_PORT)
+    client = QdrantClient(
+        host=AppSettings.QDRANT_HOST,
+        port=AppSettings.QDRANT_PORT,
+        api_key=AppSettings.QDRANT_API_KEY,
+        https=AppSettings.QDRANT_USE_HTTPS,
+    )
     
     vector_store = QdrantVectorStore(
         client=client,

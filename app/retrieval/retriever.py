@@ -22,7 +22,12 @@ class DocumentRetriever:
         self.use_reranker = use_reranker
         
         # Connect to Qdrant
-        self.client = QdrantClient(host=AppSettings.QDRANT_HOST, port=AppSettings.QDRANT_PORT)
+        self.client = QdrantClient(
+            host=AppSettings.QDRANT_HOST,
+            port=AppSettings.QDRANT_PORT,
+            api_key=AppSettings.QDRANT_API_KEY,
+            https=AppSettings.QDRANT_USE_HTTPS,
+        )
         self.vector_store = QdrantVectorStore(
             client=self.client,
             collection_name=self.collection_name,
