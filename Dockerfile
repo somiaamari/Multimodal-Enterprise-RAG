@@ -46,11 +46,11 @@ RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Expose the port Hugging Face Spaces expects
-EXPOSE 7860
+EXPOSE 10000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:7860/ || exit 1
 
 # Run Chainlit
-CMD ["sh", "-c", "chainlit run app/frontend/chat.py --host 0.0.0.0 --port $PORT"]
+CMD chainlit run app/frontend/chat.py --host 0.0.0.0 --port ${PORT:-10000}
