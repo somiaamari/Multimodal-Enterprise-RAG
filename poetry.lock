@@ -1880,6 +1880,23 @@ llama-index-core = ">=0.13.0,<0.15"
 sentence-transformers = ">=2.6.1"
 
 [[package]]
+name = "llama-index-embeddings-huggingface-api"
+version = "0.6.0"
+description = "llama-index embeddings huggingface api integration"
+optional = false
+python-versions = "<4.0,>=3.10"
+groups = ["main"]
+files = [
+    {file = "llama_index_embeddings_huggingface_api-0.6.0-py3-none-any.whl", hash = "sha256:3a9abc5e5d76d99f5433ee8ef563604aac5cc69a154e43ba183270dfa5646e2e"},
+    {file = "llama_index_embeddings_huggingface_api-0.6.0.tar.gz", hash = "sha256:dbbf9ab28bbf79c268e0bb3770b200b8c3c0c5c12d60004a56223fd925013981"},
+]
+
+[package.dependencies]
+huggingface-hub = {version = ">=0.31.0", extras = ["inference"]}
+llama-index-core = ">=0.13.0,<0.15"
+llama-index-utils-huggingface = ">=0.4.0,<0.5"
+
+[[package]]
 name = "llama-index-embeddings-openai"
 version = "0.6.0"
 description = "llama-index embeddings openai integration"
@@ -1962,6 +1979,22 @@ files = [
 bm25s = ">=0.2.7.post1"
 llama-index-core = ">=0.13.1,<0.15"
 pystemmer = ">=2.2.0.1,<3"
+
+[[package]]
+name = "llama-index-utils-huggingface"
+version = "0.4.1"
+description = "llama-index utils for huggingface integration"
+optional = false
+python-versions = "<4.0,>=3.9"
+groups = ["main"]
+files = [
+    {file = "llama_index_utils_huggingface-0.4.1-py3-none-any.whl", hash = "sha256:cd24f498277593d31964826e3bf33d04f20ced26030677ea45510625c66c16ec"},
+    {file = "llama_index_utils_huggingface-0.4.1.tar.gz", hash = "sha256:32ffd2d3e1d86ac904f258c86d588915366789860ea1e5200df30b163467cea4"},
+]
+
+[package.dependencies]
+huggingface-hub = {version = ">=0.19.0", extras = ["inference"]}
+llama-index-core = ">=0.13.0,<0.15"
 
 [[package]]
 name = "llama-index-vector-stores-qdrant"
@@ -6548,4 +6581,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "fcbb3ce6ea1d62544e7066d383d05d897c5dbfafe436b057be1d23e08746d4a7"
+content-hash = "1c5dd8af24080e0cf841db380f267b6f91c2a8fb1394867714d51a908a0f72b7"

@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 class DocumentRetriever:
     """Advanced retriever with Hybrid Search + Reranking"""
     
-    def __init__(self, collection_name=None, use_hybrid=True, use_reranker=True):
+    def __init__(self, collection_name=None, use_hybrid=False, use_reranker=False):
+
         self.collection_name = collection_name or AppSettings.COLLECTION_NAME
         self.use_hybrid = use_hybrid
         self.use_reranker = use_reranker

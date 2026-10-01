@@ -131,7 +131,7 @@ def _ingest_file(file_path: str):
 
 def _build_retriever():
     """Blocking wrapper for retriever construction."""
-    return DocumentRetriever(use_hybrid=False, use_reranker=True)
+    return DocumentRetriever(use_hybrid=False, use_reranker=False)
 
 
 async def handle_question(question: str):
