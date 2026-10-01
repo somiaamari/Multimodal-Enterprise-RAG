@@ -7,8 +7,7 @@ from llama_index.core.response_synthesizers import get_response_synthesizer
 from llama_index.llms.openai_like import OpenAILike
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
-from app.utils.config import Settings as AppSettings
-from app.ingestion.embedding import embed_model
+from app.utils.config import get_qdrant_client
 from app.retrieval.reranker import Reranker
 
 logger = logging.getLogger(__name__)
@@ -23,12 +22,7 @@ class DocumentRetriever:
         self.use_reranker = use_reranker
         
         # Connect to Qdrant
-        self.client = QdrantClient(
-            host=AppSettings.QDRANT_HOST,
-            port=AppSettings.QDRANT_PORT,
-            api_key=AppSettings.QDRANT_API_KEY,
-            https=AppSettings.QDRANT_USE_HTTPS,
-        )
+        self.client = get_qdrant_client()
         self.vector_store = QdrantVectorStore(
             client=self.client,
             collection_name=self.collection_name,

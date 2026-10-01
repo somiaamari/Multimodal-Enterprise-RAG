@@ -6,8 +6,7 @@ from llama_index.core import VectorStoreIndex, StorageContext, Document
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_parse import LlamaParse
-from app.utils.config import Settings
-from app.ingestion.embedding import embed_model
+from app.utils.config import Settings, get_qdrant_client
 from app.ingestion.captioner import ImageCaptioner
 
 logger = logging.getLogger(__name__)
