@@ -26,19 +26,35 @@ def get_qdrant_client() -> QdrantClient:
     """
     Build a QdrantClient that works both locally and on Qdrant Cloud.
 
-    - Local: QDRANT_HOST=localhost, QDRANT_PORT=6333 (no auth)
-    - Cloud: QDRANT_HOST=https://xxx.cloud.qdrant.io + QDRANT_API_KEY
-             (uses `url` parameter instead of `host`)
+    Handles common env-var quirks:
+    - Strips surrounding whitespace
+    - Strips accidental quotes (from dashboard copy-paste)
     """
-    host = Settings.QDRANT_HOST
+    # ── Sanitize the host value 
+    host = (Settings.QDRANT_HOST or "").strip().strip('"').strip("'")
 
-    # Qdrant Cloud: full URL with protocol → use `url`
-    if host.startswith("http://") or host.startswith("https://"):
+    print(f"🔍 Qdrant client init: host={host!r}")
+
+    # ── Auto-detect Qdrant Cloud by domain ───────────────────
+    is_cloud = (
+        host.startswith("http://")
+        or host.startswith("https://")
+        or host.endswith(".qdrant.io")
+        or host.endswith(".cloud.qdrant.io")
+    )
+
+    if is_cloud:
+        if not host.startswith("http://") and not host.startswith("https://"):
+            host = "https://" + host
+
+        print(f"🔍 Using url param (cloud): {host}")
         return QdrantClient(
             url=host,
             api_key=Settings.QDRANT_API_KEY,
         )
 
+    # ── Local Docker ─────────────────────────────────────────
+    print(f"🔍 Using host param (local): {host}:{Settings.QDRANT_PORT}")
     return QdrantClient(
         host=host,
         port=Settings.QDRANT_PORT,
