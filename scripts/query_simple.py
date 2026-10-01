@@ -4,6 +4,7 @@ from llama_index.core.storage import StorageContext
 from llama_index.llms.openai import OpenAI
 from llama_index.core import Settings
 from qdrant_client import QdrantClient
+from app.utils.config import Settings as AppSettings
 from app.utils.config import get_qdrant_client
 from app.ingestion.embedding import embed_model
 
@@ -11,7 +12,7 @@ from app.ingestion.embedding import embed_model
 Settings.llm = OpenAI(
     api_key=AppSettings.GROQ_API_KEY,
     api_base="https://api.groq.com/openai/v1",
-    model="llama-3.3-70b-versatile", 
+    model="openai/gpt-oss-120b",
     temperature=0.1,
     context_window=128000,
     max_tokens=4096,
