@@ -12,10 +12,10 @@ class Settings:
     QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", None)
     QDRANT_USE_HTTPS = os.getenv("QDRANT_USE_HTTPS", "false").lower() == "true"
 
-    # Groq API 
+    # Groq API
     GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
-    # Local embedding model 
+    # Local embedding model
     EMBED_MODEL = "all-MiniLM-L6-v2"
 
     # Collection name for our vectors
@@ -29,13 +29,14 @@ def get_qdrant_client() -> QdrantClient:
     Handles common env-var quirks:
     - Strips surrounding whitespace
     - Strips accidental quotes (from dashboard copy-paste)
+    - Auto-detects Qdrant Cloud by domain
     """
-    # ── Sanitize the host value 
+    # Sanitize the host value
     host = (Settings.QDRANT_HOST or "").strip().strip('"').strip("'")
 
     print(f"🔍 Qdrant client init: host={host!r}")
 
-    # ── Auto-detect Qdrant Cloud by domain ───────────────────
+    # Auto-detect Qdrant Cloud
     is_cloud = (
         host.startswith("http://")
         or host.startswith("https://")
@@ -44,6 +45,7 @@ def get_qdrant_client() -> QdrantClient:
     )
 
     if is_cloud:
+        # Ensure protocol is present
         if not host.startswith("http://") and not host.startswith("https://"):
             host = "https://" + host
 
@@ -53,7 +55,7 @@ def get_qdrant_client() -> QdrantClient:
             api_key=Settings.QDRANT_API_KEY,
         )
 
-    # ── Local Docker ─────────────────────────────────────────
+    # Local Docker
     print(f"🔍 Using host param (local): {host}:{Settings.QDRANT_PORT}")
     return QdrantClient(
         host=host,

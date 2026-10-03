@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,14 +22,16 @@ jobs:
         uses: snok/install-poetry@v1
         with:
           version: 2.1.4
+          virtualenvs-create: true
+          virtualenvs-in-project: true
 
-      - name: Install dependencies
+      - name: Install dependencies (including dev)
         run: poetry install --no-interaction --no-root
 
-      - name: Lint with Black
+      - name: Check formatting with Black
         run: poetry run black --check app/ scripts/
 
-      - name: Check imports with isort
+      - name: Check import order with isort
         run: poetry run isort --check-only app/ scripts/
 
       - name: Type check with mypy
