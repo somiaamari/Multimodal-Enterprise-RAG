@@ -1,12 +1,12 @@
-from llama_index.core import VectorStoreIndex
-from llama_index.vector_stores.qdrant import QdrantVectorStore
+from llama_index.core import Settings, VectorStoreIndex
 from llama_index.core.storage import StorageContext
 from llama_index.llms.openai import OpenAI
-from llama_index.core import Settings
+from llama_index.vector_stores.qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
+
+from app.ingestion.embedding import embed_model
 from app.utils.config import Settings as AppSettings
 from app.utils.config import get_qdrant_client
-from app.ingestion.embedding import embed_model
 
 # Set up LLM
 Settings.llm = OpenAI(
@@ -20,7 +20,9 @@ Settings.llm = OpenAI(
 
 # Load index
 client = get_qdrant_client()
-vector_store = QdrantVectorStore(client=client, collection_name=AppSettings.COLLECTION_NAME)
+vector_store = QdrantVectorStore(
+    client=client, collection_name=AppSettings.COLLECTION_NAME
+)
 storage_context = StorageContext.from_defaults(vector_store=vector_store)
 index = VectorStoreIndex.from_vector_store(vector_store, embed_model=embed_model)
 

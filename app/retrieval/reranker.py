@@ -1,7 +1,8 @@
 from typing import List
+
+import numpy as np
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.schema import NodeWithScore
-import numpy as np
 
 
 class Reranker:
@@ -18,12 +19,15 @@ class Reranker:
     def model(self):
         if self._model is None:
             from sentence_transformers import CrossEncoder
+
             print(f"🔄 Loading reranker model: {self.model_name}...")
             self._model = CrossEncoder(self.model_name)
             print("✅ Reranker model loaded!")
         return self._model
 
-    def rerank(self, query: str, nodes: List[NodeWithScore], top_k: int = 3) -> List[NodeWithScore]:
+    def rerank(
+        self, query: str, nodes: List[NodeWithScore], top_k: int = 3
+    ) -> List[NodeWithScore]:
         if not nodes:
             return nodes
 

@@ -1,6 +1,7 @@
 """
 Chainlit frontend for EnterpriseMind AI RAG system.
 """
+
 import sys
 from pathlib import Path
 
@@ -11,17 +12,16 @@ if str(PROJECT_ROOT) not in sys.path:
 
 print(f"✅ PROJECT_ROOT added to sys.path: {PROJECT_ROOT}")
 
+import asyncio
 import os
 import shutil
-import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
 import chainlit as cl
 
-from app.retrieval.retriever import DocumentRetriever
 from app.ingestion.pipeline import ingest_document
+from app.retrieval.retriever import DocumentRetriever
 from app.utils.config import Settings
-
 
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True)
@@ -93,13 +93,9 @@ async def handle_pdf_upload(element):
 
     loop = asyncio.get_event_loop()
     try:
-        _, count = await loop.run_in_executor(
-            _executor, _ingest_file, str(dest_path)
-        )
+        _, count = await loop.run_in_executor(_executor, _ingest_file, str(dest_path))
     except Exception as e:
-        await cl.Message(
-            content=f"❌ **Ingestion failed:**\n```\n{e}\n```"
-        ).send()
+        await cl.Message(content=f"❌ **Ingestion failed:**\n```\n{e}\n```").send()
         return
 
     try:
@@ -152,9 +148,7 @@ async def handle_question(question: str):
 
     loop = asyncio.get_event_loop()
     try:
-        result = await loop.run_in_executor(
-            _executor, _run_query, retriever, question
-        )
+        result = await loop.run_in_executor(_executor, _run_query, retriever, question)
     except Exception as e:
         msg.content = f"❌ **Query failed:**\n```\n{e}\n```"
         await msg.update()
