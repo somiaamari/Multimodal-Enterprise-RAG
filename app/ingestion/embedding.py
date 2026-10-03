@@ -1,7 +1,6 @@
 import os
 
-from llama_index.embeddings.huggingface_api import \
-    HuggingFaceInferenceAPIEmbedding
+from llama_index.embeddings.huggingface_api import HuggingFaceInferenceAPIEmbedding
 
 from app.utils.config import Settings as AppSettings
 
