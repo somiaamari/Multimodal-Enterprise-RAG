@@ -9,6 +9,7 @@ from llama_index.llms.openai_like import OpenAILike
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
 
+from app.ingestion.embedding import embed_model
 from app.retrieval.reranker import Reranker
 from app.utils.config import get_qdrant_client
 

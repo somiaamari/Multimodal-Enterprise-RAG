@@ -9,6 +9,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 
 from app.ingestion.captioner import ImageCaptioner
+from app.ingestion.embedding import embed_model
 from app.utils.config import Settings, get_qdrant_client
 
 logger = logging.getLogger(__name__)
