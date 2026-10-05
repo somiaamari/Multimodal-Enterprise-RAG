@@ -38,6 +38,7 @@ class HuggingFaceInferenceEmbedding(BaseEmbedding):
     async def _aget_text_embedding(self, text: str) -> list[float]:
         return await asyncio.to_thread(self._embed, text)
 
+
 embed_model = HuggingFaceInferenceEmbedding(
     model_name="sentence-transformers/all-MiniLM-L6-v2",
     token=os.getenv("HF_TOKEN"),
