@@ -1,108 +1,81 @@
-# 🚀 Multimodal Enterprise RAG Agent
+# Multimodal Enterprise RAG
 
-An enterprise-grade **Retrieval-Augmented Generation (RAG)** system that answers questions about PDF documents with **source citations**, **reranking**, and **self-reflective retrieval**.
+PDF question answering with Chainlit, LlamaIndex, Qdrant, Groq, and Hugging Face inference.
 
-Built as a portfolio project demonstrating production-grade AI engineering.
+**Live demo:** [multimodal-enterprise-rag.onrender.com](https://multimodal-enterprise-rag.onrender.com/)
 
----
+## Overview
 
-## ✨ Features
+Upload a PDF, let the application parse and index its text and generated image captions, then ask questions in the chat. The application retrieves relevant passages from Qdrant and sends them to a Groq-hosted language model to generate an answer with source context.
 
-| Feature | Description |
-|---------|-------------|
-| 📄 **PDF Ingestion** | Upload any PDF → auto-parsed with LlamaParse |
-| 🔍 **Hybrid Retrieval** | Vector search + reranking for precision |
-| 🎯 **Cross-Encoder Reranking** | Most relevant chunks first |
-| 🤖 **Self-RAG** | Evaluates retrieval quality, retries or rejects |
-| 📚 **Source Citations** | Every answer cites page numbers and scores |
-| 💬 **Chat Interface** | Chainlit UI with streaming answers |
-| 📤 **Drag & Drop Upload** | Upload PDFs directly in the UI |
-| 🖼️ **Multimodal Ready** | Extracts tables; image captioning via BLIP |
+## Features
 
----
+- PDF parsing and Markdown extraction with LlamaParse.
+- Text chunking with 512-token chunks and 50-token overlap.
+- Normalized 384-dimensional embeddings from Hugging Face hosted inference. The web service does not load a local transformer model.
+- Vector storage and similarity search with Qdrant.
+- Groq-backed answer generation with retrieved passages and available source metadata.
+- Image extraction and BLIP-generated captions indexed as text alongside document chunks.
+- Separate CLI experiments for hybrid retrieval, Cross-Encoder reranking, and Self-RAG.
 
-## 🏗️ Architecture
+## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    MULTIMODAL RAG PIPELINE                     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│   PDF ──▶ LlamaParse ──▶ Text ──▶ Chunks ──▶ Embeddings        │
-│             │                                    │             │
-│             ▼                                    ▼             │
-│        Tables &                             Qdrant DB          │
-│        Figures                             (Vector Store)      │
-│                                                  │             │
-│                                                  ▼             │
-│   Question ──▶ Retrieve ──▶ Rerank ──▶ Evaluate ──▶ Answer    │
-│                                            │                   │
-│                                     ┌──────┴──────┐            │
-│                                     │             │            │
-│                                  ✅ Good      ❌ Bad          │
-│                                     │             │            │
-│                                     ▼             ▼            │
-│                                  Answer      Rewrite/Reject    │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    U[PDF upload] --> P[LlamaParse]
+    P --> T[Text chunking]
+    P --> I[Extracted images]
+    I --> B[BLIP captions]
+    B --> T
+    T --> E[Hugging Face embeddings]
+    E --> Q[(Qdrant)]
+    X[User question] --> E
+    Q --> R[Top-three vector retrieval]
+    R --> G[Groq LLM]
+    G --> A[Answer and source passages]
 ```
 
----
+## Technology
 
-## 🧰 Tech Stack
+| Area | Component |
+| --- | --- |
+| Chat interface | Chainlit |
+| RAG framework | LlamaIndex |
+| PDF parsing | LlamaParse |
+| Embeddings | Hugging Face Inference API, `sentence-transformers/all-MiniLM-L6-v2` |
+| Vector database | Qdrant |
+| Answer generation | Groq OpenAI-compatible API, `openai/gpt-oss-120b` |
+| Image captions | Hugging Face Inference API and BLIP |
+| Deployment | Docker and Render |
 
-| Component | Technology | Why |
-|-----------|-----------|-----|
-| **LLM** | Groq (`openai/gpt-oss-120b`) | Free, OpenAI-compatible, fast |
-| **Embeddings** | `all-MiniLM-L6-v2` (local) | Free, offline, no API cost |
-| **Vector DB** | Qdrant (Docker) | Fast, production-ready, self-hosted |
-| **Framework** | LlamaIndex | Best-in-class RAG abstractions |
-| **PDF Parser** | LlamaParse | Clean text + table extraction |
-| **Reranker** | Cross-Encoder (`ms-marco-MiniLM-L-6-v2`) | Improves retrieval precision |
-| **Frontend** | Chainlit | Beautiful chat UI in pure Python |
+## Repository Layout
 
----
-
-## 📁 Project Structure
-
-```
-multimodal-enterprise-rag/
-├── app/
-│   ├── ingestion/          # PDF parsing, chunking, embeddings
-│   │   ├── pipeline.py     # Main ingestion flow
-│   │   ├── embedding.py    # HuggingFace embedding setup
-│   │   └── captioner.py    # Image captioning (BLIP)
-│   ├── retrieval/          # Retrieval + reranking
-│   │   ├── retriever.py    # DocumentRetriever class
-│   │   └── reranker.py     # Cross-encoder reranker
-│   ├── agents/             # Self-RAG
-│   │   ├── evaluator.py    # Relevance evaluator
-│   │   └── self_rag.py     # Self-RAG orchestrator
-│   ├── frontend/           # Chainlit UI
-│   │   └── chat.py         # Main chat app
-│   └── utils/
-│       └── config.py       # Settings & env loading
-├── scripts/                # CLI utilities
-│   ├── ingest.py
-│   ├── query.py
-│   └── self_rag_demo.py
-├── data/                   # PDFs (gitignored)
-├── docker-compose.yml      # Qdrant service
-├── .chainlit/              # Chainlit config
-├── chainlit.md             # Welcome screen
-└── pyproject.toml          # Poetry dependencies
+```text
+app/
+  agents/       Relevance evaluation and Self-RAG experiment
+  frontend/     Chainlit upload and chat handlers
+  ingestion/    PDF parsing, chunking, image captions, embeddings
+  retrieval/    Qdrant retrieval and optional reranking
+  utils/        Environment-backed settings
+scripts/        Ingestion, query, and Self-RAG command-line demos
+data/           Local PDFs and extracted images (ignored by Git)
+docker-compose.yml  Local Qdrant service
+Dockerfile          Render container build and startup
+pyproject.toml      Poetry dependencies and optional extras
+poetry.lock         Resolved dependency versions
 ```
 
----
+## Run Locally
 
-## 🚀 Quick Start
+### Requirements
 
-### 1. Prerequisites
+- Python 3.11, 3.12, or 3.13
+- Poetry 2.x
+- Docker Desktop or another Qdrant instance
+- API credentials for LlamaParse and Groq
+- A Hugging Face token is recommended for inference rate limits
 
-- **Python 3.11**
-- **Poetry** (2.x)
-- **Docker Desktop** (for Qdrant)
-
-### 2. Clone & Install
+### Install
 
 ```bash
 git clone https://github.com/somiaamari/Multimodal-Enterprise-RAG.git
@@ -110,114 +83,85 @@ cd Multimodal-Enterprise-RAG
 poetry install
 ```
 
-### 3. Configure Environment
+Create a `.env` file in the repository root:
 
-Create a `.env` file:
+```dotenv
+LLAMA_PARSE_API_KEY=your_llamaparse_api_key
+GROQ_API_KEY=your_groq_api_key
+HF_TOKEN=your_huggingface_token
 
-```bash
+# Local Qdrant defaults
 QDRANT_HOST=localhost
 QDRANT_PORT=6333
-GROQ_API_KEY=your_groq_api_key_here
-LLAMA_PARSE_API_KEY=your_llamaparse_api_key_here
+QDRANT_USE_HTTPS=false
+# QDRANT_API_KEY is optional for local Qdrant
 ```
 
-Get free keys:
-- **Groq**: https://console.groq.com
-- **LlamaParse**: https://cloud.llamaindex.ai
-
-### 4. Start Qdrant
+Start Qdrant and Chainlit:
 
 ```bash
-docker-compose up -d
+docker compose up -d qdrant
+poetry run chainlit run app/frontend/chat.py --watch
 ```
 
-### 5. Launch the UI
+Open [http://localhost:8000](http://localhost:8000), upload a PDF, wait for indexing, and ask questions in the chat.
+
+## Deploy on Render
+
+The repository Dockerfile starts Chainlit on Render's assigned `PORT`. Connect this GitHub repository to a Render Web Service using the Docker runtime. Enable auto-deploy for the branch you push to.
+
+Configure these environment variables in Render:
+
+| Variable | Purpose |
+| --- | --- |
+| `LLAMA_PARSE_API_KEY` | Parse uploaded PDFs |
+| `GROQ_API_KEY` | Generate answers |
+| `HF_TOKEN` | Authenticate Hugging Face inference and improve rate limits |
+| `QDRANT_HOST` | Qdrant Cloud URL or hostname |
+| `QDRANT_API_KEY` | Qdrant Cloud API key, if required |
+| `QDRANT_USE_HTTPS` | Set to `true` for HTTPS connections |
+
+Use an external Qdrant service for deployed data. The local Docker Compose volume is for development and is not persistent production storage.
+
+## Retrieval Flow
+
+1. LlamaParse converts an uploaded PDF into Markdown documents and extracts images.
+2. `SentenceSplitter` creates chunks of 512 tokens with 50 tokens of overlap.
+3. Hosted embedding inference converts chunks to normalized 384-dimensional vectors.
+4. Qdrant stores vectors and payload metadata.
+5. The chat app embeds the question and retrieves the three closest vectors.
+6. The Groq LLM answers from the retrieved context; the UI displays source text and available metadata.
+
+## Optional CLI Experiments
+
+The live chat app uses vector retrieval without the local Cross-Encoder, keeping the Render memory footprint lower. Install the optional reranking and Self-RAG dependency locally with:
 
 ```bash
-py -m poetry run chainlit run app/frontend/chat.py -w
+poetry install --extras reranking
 ```
 
-Open **http://localhost:8000** in your browser.
-
----
-
-## 🖥️ Usage
-
-### Via the Chat UI
-
-1. Open **http://localhost:8000**
-2. Click 📎 to upload a PDF (or drag & drop)
-3. Wait for indexing (~30–90 seconds)
-4. Ask questions in the chat box
-5. Get answers with source citations
-
-### Via the CLI
+Then run commands from the repository root:
 
 ```bash
-# Ingest a PDF
-py -m poetry run python -m scripts.ingest
+# Ingest the first PDF in data/
+poetry run python -m scripts.ingest
 
-# Query the document
-py -m poetry run python -m scripts.query
+# Run the sample reranked query workflow
+poetry run python -m scripts.query
 
-# Try Self-RAG
-py -m poetry run python -m scripts.self_rag_demo
+# Run the Self-RAG demonstration
+poetry run python -m scripts.self_rag_demo
 ```
 
----
+The Self-RAG demo contains sample prompts written for a Tesla report; replace them when using another document.
 
-## 🧠 How It Works
+## Current Scope and Limitations
 
-### Ingestion Pipeline
+- Hybrid retrieval, reranking, and Self-RAG are separate experimental paths and are not enabled in the live chat workflow.
+- Images are represented by generated text captions. The app does not currently perform image-vector retrieval or visual question answering.
+- Ingestion recreates the configured Qdrant collection. A new upload replaces the previous collection contents, so the live demo is intended for one active document at a time.
+- Parsing, embedding, and answer generation require network access and valid provider credentials. Availability and rate limits depend on those services.
 
-1. **Parse** — LlamaParse extracts clean text and tables from the PDF
-2. **Chunk** — SentenceSplitter creates 512-token chunks with 50-token overlap
-3. **Embed** — `all-MiniLM-L6-v2` converts each chunk into a 384-dim vector
-4. **Store** — Qdrant stores vectors + metadata (page number, source file)
+## License
 
-### Query Pipeline
-
-1. **Retrieve** — Top-k chunks fetched via vector similarity
-2. **Rerank** — Cross-encoder scores each chunk against the question
-3. **Evaluate** — Self-RAG checks if retrieval is good enough
-4. **Answer** — Groq LLM generates an answer from the best chunks
-5. **Cite** — Sources shown with page numbers and scores
-
-### Self-RAG Logic
-
-If the retrieval score is too low:
-- **Retry** with a rewritten query (LLM-based rewriting)
-- If still low after max retries: **Reject** with an honest "I don't know"
-
-This dramatically reduces hallucinations.
-
----
-
-## 📊 What Works Today
-
-| Phase | Feature | Status |
-|-------|---------|--------|
-| 1 | Basic RAG (PDF → Answer) | ✅ |
-| 2 | Cross-Encoder Reranking | ✅ |
-| 3 | Self-RAG (evaluate, retry, reject) | ✅ |
-| 4 | Multimodal (tables + image captions) | ⚠️ Partial |
-| 5 | Chainlit Frontend | ✅ |
-| 6 | Deployment | 🔜 |
-
----
-
-## 🔮 Roadmap
-
-- [ ] Deploy to Hugging Face Spaces
-- [ ] Dockerize the full app
-- [ ] GitHub Actions CI
-- [ ] Multi-document support
-- [ ] Full image understanding via VLM (LLaVA)
-
----
-
-
-
-
-
-
+No license file is currently included. Contact the repository owner before reusing or redistributing the project.

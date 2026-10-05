@@ -21,6 +21,9 @@ dependencies = [
     "nest-asyncio (>=1.6.0,<2.0.0)"
 ]
 
+[project.optional-dependencies]
+reranking = ["sentence-transformers>=5.7.0,<6.0.0"]
+
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
