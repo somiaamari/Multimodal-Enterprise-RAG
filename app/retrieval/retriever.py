@@ -11,6 +11,7 @@ from qdrant_client import QdrantClient
 
 from app.ingestion.embedding import embed_model
 from app.retrieval.reranker import Reranker
+from app.utils.config import Settings as AppSettings
 from app.utils.config import get_qdrant_client
 
 logger = logging.getLogger(__name__)
