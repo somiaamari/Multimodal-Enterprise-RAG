@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 
@@ -31,38 +32,20 @@ def create_collection(client, collection_name):
     print(f"✅ Collection '{collection_name}' created")
 
 
-def ingest_document(file_path, collection_name=None):
-    """
-    Ingest a PDF document into Qdrant.
-    Now with MULTIMODAL support: extracts and captions images!
-    """
-    if collection_name is None:
-        collection_name = Settings.COLLECTION_NAME
-
-    print(f"📄 Ingesting: {file_path}")
-
-    # 1. Connect to Qdrant
-    client = get_qdrant_client()
-
-    # 2. Create/Recreate the collection
-    create_collection(client, collection_name)
-
-    # 3. Parse PDF with LlamaParse (extract images too!)
-    print("📖 Parsing PDF with LlamaParse (including images)...")
-
-    # Create a directory for extracted images
-    image_dir = os.path.join("data", "extracted_images")
-    os.makedirs(image_dir, exist_ok=True)
-
-    parser = LlamaParse(
+def _create_parser(image_dir):
+    return LlamaParse(
         api_key=os.getenv("LLAMA_PARSE_API_KEY"),
         result_type="markdown",
         verbose=True,
-        images_extract_path=image_dir,  # Extract images to this folder!
+        images_extract_path=image_dir,
     )
 
-    documents = parser.load_data(file_path)
+
+def _index_documents(file_path, collection_name, documents, image_dir):
     print(f"📖 Loaded {len(documents)} pages")
+
+    client = get_qdrant_client()
+    create_collection(client, collection_name)
 
     # 4. Check for extracted images
     extracted_images = []
@@ -130,6 +113,30 @@ def ingest_document(file_path, collection_name=None):
 
     print(f"✅ Index complete! {len(all_nodes)} nodes stored in Qdrant.")
     return index, len(all_nodes)
+
+
+async def ingest_document_async(file_path, collection_name=None):
+    """Parse a PDF on the caller's event loop, then index it off-loop."""
+    if collection_name is None:
+        collection_name = Settings.COLLECTION_NAME
+
+    print(f"📄 Ingesting: {file_path}")
+    image_dir = os.path.join("data", "extracted_images")
+    os.makedirs(image_dir, exist_ok=True)
+
+    print("📖 Parsing PDF with LlamaParse (including images)...")
+    parser = _create_parser(image_dir)
+    async with parser.aclient:
+        documents = await parser.aload_data(file_path)
+
+    return await asyncio.to_thread(
+        _index_documents, file_path, collection_name, documents, image_dir
+    )
+
+
+def ingest_document(file_path, collection_name=None):
+    """Synchronous entrypoint for CLI callers."""
+    return asyncio.run(ingest_document_async(file_path, collection_name))
 
 
 def test_connection():

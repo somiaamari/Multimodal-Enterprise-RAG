@@ -1,11 +1,8 @@
-import os
-
 from llama_index.core import Settings
-from llama_index.embeddings.huggingface_api import HuggingFaceInferenceAPIEmbedding
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
-embed_model = HuggingFaceInferenceAPIEmbedding(
+embed_model = HuggingFaceEmbedding(
     model_name="sentence-transformers/all-MiniLM-L6-v2",
-    token=os.getenv("HF_TOKEN"),
 )
 
 

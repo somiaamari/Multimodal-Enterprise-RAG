@@ -1,30 +1,25 @@
-"""
-Chainlit frontend for EnterpriseMind AI RAG system.
-"""
-
+import asyncio
+import logging
 import sys
 from pathlib import Path
 
-# Add project root to sys.path so `app.*` imports work
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 print(f"✅ PROJECT_ROOT added to sys.path: {PROJECT_ROOT}")
 
-import asyncio
 import shutil
-from concurrent.futures import ThreadPoolExecutor
 
 import chainlit as cl
 
-from app.ingestion.pipeline import ingest_document
+from app.ingestion.pipeline import ingest_document_async
 from app.retrieval.retriever import DocumentRetriever
+
+logger = logging.getLogger(__name__)
 
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True)
-
-_executor = ThreadPoolExecutor(max_workers=1)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -59,7 +54,7 @@ async def on_chat_end():
 @cl.on_message
 async def on_message(message: cl.Message):
     """Handle incoming user messages."""
-    # Check for PDF attachments
+    # Look for a PDF attachment
     pdf_element = None
     for element in message.elements or []:
         name = getattr(element, "name", "")
@@ -71,7 +66,6 @@ async def on_message(message: cl.Message):
         await handle_pdf_upload(pdf_element)
         return
 
-    # Otherwise, treat as a question
     await handle_question(message.content)
 
 
@@ -83,7 +77,7 @@ async def handle_pdf_upload(element):
     name = element.name
     dest_path = DATA_DIR / name
 
-    # Save uploaded file
+    # Save the uploaded file
     try:
         if getattr(element, "path", None):
             shutil.copy(element.path, dest_path)
@@ -103,15 +97,13 @@ async def handle_pdf_upload(element):
         )
     ).send()
 
-    # Run blocking ingestion in the worker thread
-    loop = asyncio.get_event_loop()
     try:
-        count = await loop.run_in_executor(_executor, _ingest_file, str(dest_path))
+        _, count = await ingest_document_async(str(dest_path))
     except Exception as e:
+        logger.exception("Ingestion failed for %s", dest_path)
         await cl.Message(content=f"❌ **Ingestion failed:**\n```\n{e}\n```").send()
         return
 
-    # Store ONLY metadata, NOT the retriever object (avoids stale httpx clients)
     cl.user_session.set("document_name", name)
     cl.user_session.set("chunks_indexed", count)
 
@@ -125,25 +117,11 @@ async def handle_pdf_upload(element):
     ).send()
 
 
-def _ingest_file(file_path: str) -> int:
-    """
-    Blocking ingestion wrapper — runs in the worker thread.
-    Creates a fresh event loop so HTTP clients (httpx) bind correctly.
-    """
-    try:
-        asyncio.set_event_loop(asyncio.new_event_loop())
-    except Exception:
-        pass
-
-    _, count = ingest_document(file_path)
-    return count
-
-
 # ─────────────────────────────────────────────────────────────
 # Question handler
 # ─────────────────────────────────────────────────────────────
 async def handle_question(question: str):
-    """Answer a user question using a freshly-built retriever."""
+    """Answer a user question using a fresh retriever."""
     doc_name = cl.user_session.get("document_name")
 
     if not doc_name:
@@ -158,10 +136,10 @@ async def handle_question(question: str):
     msg = cl.Message(content="")
     await msg.send()
 
-    loop = asyncio.get_event_loop()
     try:
-        result = await loop.run_in_executor(_executor, _build_and_query, question)
+        result = await asyncio.to_thread(_build_and_query, question)
     except Exception as e:
+        logger.exception("Query failed")
         msg.content = f"❌ **Query failed:**\n```\n{e}\n```"
         await msg.update()
         return
@@ -171,7 +149,6 @@ async def handle_question(question: str):
     for token in answer.split():
         await msg.stream_token(token + " ")
 
-    # Append formatted sources
     sources_md = _format_sources(result.get("sources", []))
     if sources_md:
         await msg.stream_token("\n\n---\n\n" + sources_md)
@@ -180,18 +157,6 @@ async def handle_question(question: str):
 
 
 def _build_and_query(question: str) -> dict:
-    """
-    Build a fresh retriever AND run the query in the same worker thread.
-
-    This is the key fix: the retriever (and its underlying httpx clients)
-    is created and used within a single event loop, so no
-    'Event loop is closed' errors occur.
-    """
-    try:
-        asyncio.set_event_loop(asyncio.new_event_loop())
-    except Exception:
-        pass
-
     retriever = DocumentRetriever(use_hybrid=False, use_reranker=False)
     return retriever.query(question, similarity_top_k=3)
 
