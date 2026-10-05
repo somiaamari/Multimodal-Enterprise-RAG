@@ -162,6 +162,3 @@ The Self-RAG demo contains sample prompts written for a Tesla report; replace th
 - Ingestion recreates the configured Qdrant collection. A new upload replaces the previous collection contents, so the live demo is intended for one active document at a time.
 - Parsing, embedding, and answer generation require network access and valid provider credentials. Availability and rate limits depend on those services.
 
-## License
-
-No license file is currently included. Contact the repository owner before reusing or redistributing the project.
