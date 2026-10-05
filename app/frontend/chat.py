@@ -13,7 +13,6 @@ if str(PROJECT_ROOT) not in sys.path:
 print(f"✅ PROJECT_ROOT added to sys.path: {PROJECT_ROOT}")
 
 import asyncio
-import os
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 
@@ -21,7 +20,6 @@ import chainlit as cl
 
 from app.ingestion.pipeline import ingest_document
 from app.retrieval.retriever import DocumentRetriever
-from app.utils.config import Settings
 
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True)
@@ -29,11 +27,14 @@ DATA_DIR.mkdir(exist_ok=True)
 _executor = ThreadPoolExecutor(max_workers=1)
 
 
+# ─────────────────────────────────────────────────────────────
+# Chainlit lifecycle
+# ─────────────────────────────────────────────────────────────
 @cl.on_chat_start
 async def on_chat_start():
     """Initialize a new chat session."""
-    cl.user_session.set("retriever", None)
     cl.user_session.set("document_name", None)
+    cl.user_session.set("chunks_indexed", 0)
 
     await cl.Message(
         content=(
@@ -48,10 +49,16 @@ async def on_chat_start():
     ).send()
 
 
+@cl.on_chat_end
+async def on_chat_end():
+    """Cleanup when the session ends."""
+    cl.user_session.set("document_name", None)
+    cl.user_session.set("chunks_indexed", 0)
+
+
 @cl.on_message
 async def on_message(message: cl.Message):
     """Handle incoming user messages."""
-
     # Check for PDF attachments
     pdf_element = None
     for element in message.elements or []:
@@ -68,12 +75,15 @@ async def on_message(message: cl.Message):
     await handle_question(message.content)
 
 
+# ─────────────────────────────────────────────────────────────
+# PDF upload handler
+# ─────────────────────────────────────────────────────────────
 async def handle_pdf_upload(element):
     """Process an uploaded PDF and build the index."""
     name = element.name
     dest_path = DATA_DIR / name
 
-    # Copy the uploaded file to our data folder
+    # Save uploaded file
     try:
         if getattr(element, "path", None):
             shutil.copy(element.path, dest_path)
@@ -86,28 +96,24 @@ async def handle_pdf_upload(element):
         await cl.Message(content=f"❌ Failed to save file: `{e}`").send()
         return
 
-    status = cl.Message(
-        content=f"📄 Received **{name}**. Parsing and indexing... this may take 30–90 seconds."
-    )
-    await status.send()
+    await cl.Message(
+        content=(
+            f"📄 Received **{name}**. "
+            "Parsing and indexing... this may take 30–90 seconds."
+        )
+    ).send()
 
+    # Run blocking ingestion in the worker thread
     loop = asyncio.get_event_loop()
     try:
-        _, count = await loop.run_in_executor(_executor, _ingest_file, str(dest_path))
+        count = await loop.run_in_executor(_executor, _ingest_file, str(dest_path))
     except Exception as e:
         await cl.Message(content=f"❌ **Ingestion failed:**\n```\n{e}\n```").send()
         return
 
-    try:
-        retriever = await loop.run_in_executor(_executor, _build_retriever)
-    except Exception as e:
-        await cl.Message(
-            content=f"❌ **Retriever setup failed:**\n```\n{e}\n```"
-        ).send()
-        return
-
-    cl.user_session.set("retriever", retriever)
+    # Store ONLY metadata, NOT the retriever object (avoids stale httpx clients)
     cl.user_session.set("document_name", name)
+    cl.user_session.set("chunks_indexed", count)
 
     await cl.Message(
         content=(
@@ -119,22 +125,28 @@ async def handle_pdf_upload(element):
     ).send()
 
 
-def _ingest_file(file_path: str):
-    """Blocking wrapper for ingestion (runs in thread pool)."""
-    index, count = ingest_document(file_path)
-    return index, count
+def _ingest_file(file_path: str) -> int:
+    """
+    Blocking ingestion wrapper — runs in the worker thread.
+    Creates a fresh event loop so HTTP clients (httpx) bind correctly.
+    """
+    try:
+        asyncio.set_event_loop(asyncio.new_event_loop())
+    except Exception:
+        pass
+
+    _, count = ingest_document(file_path)
+    return count
 
 
-def _build_retriever():
-    """Blocking wrapper for retriever construction."""
-    return DocumentRetriever(use_hybrid=False, use_reranker=False)
-
-
+# ─────────────────────────────────────────────────────────────
+# Question handler
+# ─────────────────────────────────────────────────────────────
 async def handle_question(question: str):
-    """Answer a user question using the loaded retriever."""
-    retriever = cl.user_session.get("retriever")
+    """Answer a user question using a freshly-built retriever."""
+    doc_name = cl.user_session.get("document_name")
 
-    if retriever is None:
+    if not doc_name:
         await cl.Message(
             content=(
                 "⚠️ **No document loaded.**\n\n"
@@ -148,16 +160,18 @@ async def handle_question(question: str):
 
     loop = asyncio.get_event_loop()
     try:
-        result = await loop.run_in_executor(_executor, _run_query, retriever, question)
+        result = await loop.run_in_executor(_executor, _build_and_query, question)
     except Exception as e:
         msg.content = f"❌ **Query failed:**\n```\n{e}\n```"
         await msg.update()
         return
 
+    # Stream the answer token-by-token
     answer = result.get("answer", "").strip() or "(empty response)"
     for token in answer.split():
         await msg.stream_token(token + " ")
 
+    # Append formatted sources
     sources_md = _format_sources(result.get("sources", []))
     if sources_md:
         await msg.stream_token("\n\n---\n\n" + sources_md)
@@ -165,11 +179,26 @@ async def handle_question(question: str):
     await msg.update()
 
 
-def _run_query(retriever, question: str):
-    """Blocking query wrapper."""
+def _build_and_query(question: str) -> dict:
+    """
+    Build a fresh retriever AND run the query in the same worker thread.
+
+    This is the key fix: the retriever (and its underlying httpx clients)
+    is created and used within a single event loop, so no
+    'Event loop is closed' errors occur.
+    """
+    try:
+        asyncio.set_event_loop(asyncio.new_event_loop())
+    except Exception:
+        pass
+
+    retriever = DocumentRetriever(use_hybrid=False, use_reranker=False)
     return retriever.query(question, similarity_top_k=3)
 
 
+# ─────────────────────────────────────────────────────────────
+# Sources formatter
+# ─────────────────────────────────────────────────────────────
 def _format_sources(sources) -> str:
     """Render source citations as Markdown."""
     if not sources:
@@ -198,10 +227,3 @@ def _format_sources(sources) -> str:
         )
 
     return "\n".join(lines)
-
-
-@cl.on_chat_end
-async def on_chat_end():
-    """Cleanup when the session ends."""
-    cl.user_session.set("retriever", None)
-    cl.user_session.set("document_name", None)
