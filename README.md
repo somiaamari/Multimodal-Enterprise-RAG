@@ -106,22 +106,7 @@ poetry run chainlit run app/frontend/chat.py --watch
 
 Open [http://localhost:8000](http://localhost:8000), upload a PDF, wait for indexing, and ask questions in the chat.
 
-## Deploy on Render
 
-The repository Dockerfile starts Chainlit on Render's assigned `PORT`. Connect this GitHub repository to a Render Web Service using the Docker runtime. Enable auto-deploy for the branch you push to.
-
-Configure these environment variables in Render:
-
-| Variable | Purpose |
-| --- | --- |
-| `LLAMA_PARSE_API_KEY` | Parse uploaded PDFs |
-| `GROQ_API_KEY` | Generate answers |
-| `HF_TOKEN` | Authenticate Hugging Face inference and improve rate limits |
-| `QDRANT_HOST` | Qdrant Cloud URL or hostname |
-| `QDRANT_API_KEY` | Qdrant Cloud API key, if required |
-| `QDRANT_USE_HTTPS` | Set to `true` for HTTPS connections |
-
-Use an external Qdrant service for deployed data. The local Docker Compose volume is for development and is not persistent production storage.
 
 ## Retrieval Flow
 
@@ -153,7 +138,6 @@ poetry run python -m scripts.query
 poetry run python -m scripts.self_rag_demo
 ```
 
-The Self-RAG demo contains sample prompts written for a Tesla report; replace them when using another document.
 
 ## Current Scope and Limitations
 
