@@ -1,41 +1,36 @@
-[project]
+[tool.poetry]
 name = "multimodal-enterprise-rag"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "somiaamari",email = "amarisomia0@gmail.com"}
-]
-requires-python = ">=3.11,<3.14"
-dependencies = [
-    "pandas (>=2.0.0,<3)",
-    "llama-index (>=0.14.23,<0.15.0)",
-    "llama-index-vector-stores-qdrant (>=0.10.2,<0.11.0)",
-    "python-dotenv (>=1.2.2,<2.0.0)",
-    "llama-index-llms-openai-like (>=0.7.2,<0.8.0)",
-    "llama-parse (>=0.6.94,<0.7.0)",
-    "llama-index-retrievers-bm25 (>=0.7.1,<0.8.0)",
-    "pillow (>=12.3.0,<13.0.0)",
-    "requests (>=2.34.2,<3.0.0)",
-    "huggingface-hub (>=1.28.0,<2.0.0)",
-    "chainlit (>=2.12.0,<3.0.0)",
-    "nest-asyncio (>=1.6.0,<2.0.0)"
-]
+authors = ["somiaamari <amarisomia0@gmail.com>"]
+package-mode = false
 
-[project.optional-dependencies]
-reranking = ["sentence-transformers>=5.7.0,<6.0.0"]
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+python-dotenv = ">=1.0,<2"
+qdrant-client = ">=1.7,<2"
+llama-index = ">=0.14,<0.15"
+llama-index-vector-stores-qdrant = ">=0.10,<0.11"
+llama-index-embeddings-fastembed = ">=0.7,<0.8"
+fastembed = ">=0.8,<0.9"
+llama-index-llms-openai-like = ">=0.7,<0.8"
+llama-index-retrievers-bm25 = ">=0.7,<0.8"
+llama-parse = ">=0.6,<0.7"
+chainlit = ">=2.12,<3"
+pandas = ">=2.0,<3"
+pillow = ">=10,<13"
+requests = ">=2.31,<3"
+huggingface-hub = ">=0.23,<2"
 
+[tool.poetry.group.dev.dependencies]
+black = ">=24,<27"
+isort = ">=5,<10"
+mypy = ">=1.8,<3"
+pytest = ">=8,<10"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
-
-[dependency-groups]
-dev = [
-    "black (>=26.5.1,<27.0.0)",
-    "isort (>=9.0.2,<10.0.0)",
-    "mypy (>=2.4.0,<3.0.0)",
-    "pytest (>=9.1.1,<10.0.0)"
-]
 
 [tool.black]
 line-length = 88
